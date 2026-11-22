@@ -81,6 +81,16 @@ class ByteWriter {
     for (let i = 0; i < value.length; i++) this.byte(value.charCodeAt(i));
   }
 
+  asciiSpan(text, start, end) {
+    while (start < end) {
+      if (this.used === this.buffer.length) this.flush();
+      const count = Math.min(end - start, this.buffer.length - this.used);
+      const chunk = text.slice(start, start + count);
+      this.used += this.buffer.write(chunk, this.used, count, "latin1");
+      start += count;
+    }
+  }
+
   codePoint(value) {
     if (value < 0x80) {
       this.byte(value);
@@ -115,6 +125,18 @@ class ByteWriter {
   jsonContent(text, start, end) {
     for (let i = start; i < end; i++) {
       const code = text.charCodeAt(i);
+      if (code >= 0x20 && code <= 0x7e && code !== 34 && code !== 92) {
+        const runStart = i;
+        let runEnd = i + 1;
+        while (runEnd < end) {
+          const next = text.charCodeAt(runEnd);
+          if (next < 0x20 || next > 0x7e || next === 34 || next === 92) break;
+          runEnd++;
+        }
+        this.asciiSpan(text, runStart, runEnd);
+        i = runEnd - 1;
+        continue;
+      }
       if (code === 34) this.ascii('\\"');
       else if (code === 92) this.ascii("\\\\");
       else if (code === 8) this.ascii("\\b");
