@@ -1,0 +1,8 @@
+{
+  "name": "csv-reader-speed-01-entry",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node tests/edge-cases.mjs"
+  }
+}
