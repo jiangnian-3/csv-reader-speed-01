@@ -11,6 +11,7 @@ export function run(input) {
   let recordRow = null;
 
   const error = (code) => errors.push({ code, line: recordLine, row: recordRow });
+  const separator = /[\r\n,]/g;
 
   function readUnquoted(initial, countAdded = false) {
     let start = pos;
@@ -19,23 +20,11 @@ export function run(input) {
     let added = 0;
 
     while (scan < text.length) {
-      const comma = text.indexOf(',', scan);
-      const lf = text.indexOf('\n', scan);
-      const cr = text.indexOf('\r', scan);
-      let end = text.length;
-      let kind = 0;
-      if (comma !== -1 && comma < end) {
-        end = comma;
-        kind = 1;
-      }
-      if (lf !== -1 && lf < end) {
-        end = lf;
-        kind = 2;
-      }
-      if (cr !== -1 && cr < end) {
-        end = cr;
-        kind = 3;
-      }
+      separator.lastIndex = scan;
+      const match = separator.exec(text);
+      const end = match === null ? text.length : match.index;
+      const kind = match === null ? 0 : text.charCodeAt(end) === 44 ? 1 : text.charCodeAt(end) === 10 ? 2 : 3;
+
 
       if (kind === 0) {
         if (countAdded) added += text.length - start;
