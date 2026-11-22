@@ -288,7 +288,6 @@ function createJsonSink(writeChunk) {
 }
 
 function parseInto(input, sink) {
-  const FIELD_SEPARATOR = /[\r\n,]/g;
   const QUOTED_SPECIAL = /["\r\n]/g;
   const text = String(input.text);
   const header = input.header === true;
@@ -311,16 +310,18 @@ function parseInto(input, sink) {
     let scan = pos;
     let added = 0;
     while (true) {
-      FIELD_SEPARATOR.lastIndex = scan;
-      const match = FIELD_SEPARATOR.exec(text);
-      if (!match) {
+      let end = text.indexOf(",", scan);
+      let found = text.indexOf("\r", scan);
+      if (found !== -1 && (end === -1 || found < end)) end = found;
+      found = text.indexOf("\n", scan);
+      if (found !== -1 && (end === -1 || found < end)) end = found;
+      if (end === -1) {
         sink.appendSpan(text, start, length);
         if (countAdded) added += length - start;
         pos = length;
         fieldEnded = 2;
         return added;
       }
-      const end = match.index;
       const code = text.charCodeAt(end);
       if (code === 13 && text.charCodeAt(end + 1) !== 10) {
         sink.appendSpan(text, start, end);
