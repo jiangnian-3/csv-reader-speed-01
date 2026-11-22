@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { run } from '../solve.js';
+import { createJsonSink, run } from '../solve.js';
 
 const cases = [
   {
@@ -102,4 +102,14 @@ for (const test of cases) {
   assert.deepEqual(run(test.input), test.expected, test.name);
 }
 
-console.log(`${cases.length} edge cases passed`);
+const chunks = [];
+const sink = createJsonSink((chunk) => chunks.push(Buffer.from(chunk)));
+sink.beginOutput();
+for (const test of cases) {
+  sink.beginCase();
+  run(test.input, sink);
+}
+sink.endOutput();
+assert.deepEqual(JSON.parse(Buffer.concat(chunks).toString('utf8')), cases.map((test) => test.expected));
+
+console.log(`${cases.length} edge cases passed through both sinks`);
