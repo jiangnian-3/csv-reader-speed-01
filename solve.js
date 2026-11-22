@@ -9,6 +9,8 @@ export function run(input) {
   let line = 1;
   let recordLine = 1;
   let recordRow = null;
+  let fieldEnded = 2;
+  let fieldAdded = 0;
 
   const error = (code) => errors.push({ code, line: recordLine, row: recordRow });
   const separator = /[\r\n,]/g;
@@ -30,7 +32,9 @@ export function run(input) {
         if (countAdded) added += text.length - start;
         if (chunks) chunks.push(text.slice(start));
         pos = text.length;
-        return { value: chunks ? chunks.join('') : initial + text.slice(start), ended: 2, added };
+        fieldEnded = 2;
+        fieldAdded = added;
+        return chunks ? chunks.join('') : initial + text.slice(start);
       }
 
       if (kind === 3 && text.charCodeAt(end + 1) !== 10) {
@@ -47,24 +51,30 @@ export function run(input) {
       if (chunks) chunks.push(text.slice(start, end));
       if (countAdded) added += end - start;
       const value = chunks ? chunks.join('') : initial + text.slice(start, end);
+      fieldAdded = added;
       if (kind === 1) {
         pos = end + 1;
-        return { value, ended: 0, added };
+        fieldEnded = 0;
+        return value;
       }
       if (kind === 2) {
         pos = end + 1;
         line += 1;
-        return { value, ended: 1, added };
+        fieldEnded = 1;
+        return value;
       }
       pos = end + 2;
       line += 1;
-      return { value, ended: 1, added };
+      fieldEnded = 1;
+      return value;
     }
 
     if (countAdded) added += text.length - start;
     if (chunks) chunks.push(text.slice(start));
     pos = text.length;
-    return { value: chunks ? chunks.join('') : initial + text.slice(start), ended: 2, added };
+    fieldEnded = 2;
+    fieldAdded = added;
+    return chunks ? chunks.join('') : initial + text.slice(start);
   }
 
   function readQuoted() {
@@ -134,26 +144,36 @@ export function run(input) {
     }
 
     pos = close + 1;
-    if (pos === text.length) return { value, ended: 2 };
+    if (pos === text.length) {
+      fieldEnded = 2;
+      fieldAdded = 0;
+      return value;
+    }
 
     const next = text.charCodeAt(pos);
     if (next === 44) {
       pos += 1;
-      return { value, ended: 0 };
+      fieldEnded = 0;
+      fieldAdded = 0;
+      return value;
     }
     if (next === 10) {
       pos += 1;
       line += 1;
-      return { value, ended: 1 };
+      fieldEnded = 1;
+      fieldAdded = 0;
+      return value;
     }
     if (next === 13 && text.charCodeAt(pos + 1) === 10) {
       pos += 2;
       line += 1;
-      return { value, ended: 1 };
+      fieldEnded = 1;
+      fieldAdded = 0;
+      return value;
     }
 
     const junk = readUnquoted(value, true);
-    if (junk.added > 0) error('quote_junk');
+    if (fieldAdded > 0) error('quote_junk');
     return junk;
   }
 
@@ -174,13 +194,11 @@ export function run(input) {
     recordLine = line;
     recordRow = header && columns === null ? null : rows.length;
     const fields = [];
-    let field;
     let quoted;
     do {
       quoted = text.charCodeAt(pos) === 34;
-      field = quoted ? readQuoted() : readUnquoted('');
-      fields.push(field.value);
-    } while (field.ended === 0);
+      fields.push(quoted ? readQuoted() : readUnquoted(''));
+    } while (fieldEnded === 0);
 
     if (fields.length === 1 && fields[0] === '' && !quoted) continue;
     if (width < 0) width = fields.length;
