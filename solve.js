@@ -197,7 +197,34 @@ export function run(input) {
     let quoted;
     do {
       quoted = text.charCodeAt(pos) === 34;
-      fields.push(quoted ? readQuoted() : readUnquoted(''));
+      if (quoted) {
+        fields.push(readQuoted());
+      } else {
+        separator.lastIndex = pos;
+        const match = separator.exec(text);
+        const end = match === null ? text.length : match.index;
+        const kind = match === null ? 0 : text.charCodeAt(end) === 44 ? 1 : text.charCodeAt(end) === 10 ? 2 : 3;
+        if (kind === 3 && text.charCodeAt(end + 1) !== 10) {
+          fields.push(readUnquoted(''));
+        } else {
+          fields.push(text.slice(pos, end));
+          if (kind === 0) {
+            pos = text.length;
+            fieldEnded = 2;
+          } else if (kind === 1) {
+            pos = end + 1;
+            fieldEnded = 0;
+          } else if (kind === 2) {
+            pos = end + 1;
+            line += 1;
+            fieldEnded = 1;
+          } else {
+            pos = end + 2;
+            line += 1;
+            fieldEnded = 1;
+          }
+        }
+      }
     } while (fieldEnded === 0);
 
     if (fields.length === 1 && fields[0] === '' && !quoted) continue;
