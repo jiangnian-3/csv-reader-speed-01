@@ -12,6 +12,7 @@ export function run(input) {
 
   const error = (code) => errors.push({ code, line: recordLine, row: recordRow });
   const separator = /[\r\n,]/g;
+  const quotedSpecial = /["\r\n]/g;
 
   function readUnquoted(initial, countAdded = false) {
     let start = pos;
@@ -24,7 +25,6 @@ export function run(input) {
       const match = separator.exec(text);
       const end = match === null ? text.length : match.index;
       const kind = match === null ? 0 : text.charCodeAt(end) === 44 ? 1 : text.charCodeAt(end) === 10 ? 2 : 3;
-
 
       if (kind === 0) {
         if (countAdded) added += text.length - start;
@@ -72,8 +72,10 @@ export function run(input) {
     const openLine = line;
     let quote = text.indexOf('"', open + 1);
     let close = -1;
+    let hasEscape = false;
     while (quote !== -1) {
       if (text.charCodeAt(quote + 1) === 34) {
+        hasEscape = true;
         quote = text.indexOf('"', quote + 2);
       } else {
         close = quote;
@@ -90,10 +92,8 @@ export function run(input) {
 
     let value;
     const contentStart = open + 1;
-    const firstQuote = text.indexOf('"', contentStart);
     const firstCr = text.indexOf('\r', contentStart);
     const firstLf = text.indexOf('\n', contentStart);
-    const hasEscape = firstQuote !== -1 && firstQuote < close;
     const hasCr = firstCr !== -1 && firstCr < close;
     const hasLf = firstLf !== -1 && firstLf < close;
 
@@ -111,23 +111,10 @@ export function run(input) {
       const chunks = [];
       let cursor = contentStart;
       while (cursor < close) {
-        const q = text.indexOf('"', cursor);
-        const cr = text.indexOf('\r', cursor);
-        const lf = text.indexOf('\n', cursor);
-        let next = close;
-        let kind = 0;
-        if (q !== -1 && q < next) {
-          next = q;
-          kind = 1;
-        }
-        if (cr !== -1 && cr < next) {
-          next = cr;
-          kind = 2;
-        }
-        if (lf !== -1 && lf < next) {
-          next = lf;
-          kind = 3;
-        }
+        quotedSpecial.lastIndex = cursor;
+        const match = quotedSpecial.exec(text);
+        const next = match === null || match.index >= close ? close : match.index;
+        const kind = next === close ? 0 : text.charCodeAt(next) === 34 ? 1 : text.charCodeAt(next) === 13 ? 2 : 3;
         chunks.push(text.slice(cursor, next));
         if (kind === 0) break;
         if (kind === 1) {
