@@ -1,0 +1,5 @@
+{
+  "name": "csv-wasm-local",
+  "private": true,
+  "type": "module"
+}

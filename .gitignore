@@ -1,0 +1,6 @@
+/target/*
+!/target/wasm32-unknown-unknown/
+/target/wasm32-unknown-unknown/*
+!/target/wasm32-unknown-unknown/release/
+/target/wasm32-unknown-unknown/release/*
+!/target/wasm32-unknown-unknown/release/csv_wasm_local.wasm
